@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Form</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Helvetica, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .form-container {
+            width: 60%;
+            margin: auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border: 2px solid #4CAF50;
+        }
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    <h1>Navneet Singh</h1>
+    <h2>Invoice Form</h2>
+    <div id="invoiceDate" style="text-align:center; margin-bottom: 20px; font-weight: bold;"></div>
+    <form id="invoiceForm">
+        <table>
+            <tr>
+                <th><label for="awbNo">AWB No.</label></th>
+                <td><input type="text" id="awbNo" name="awbNo" required></td>
+            </tr>
+            <tr>
+                <th><label for="consignee">Consignee</label></th>
+                <td><input type="text" id="consignee" name="consignee" required></td>
+            </tr>
+            <tr>
+                <th><label for="destination">Destination</label></th>
+                <td><input type="text" id="destination" name="destination" required></td>
+            </tr>
+            <tr>
+                <th><label for="net">Net</label></th>
+                <td><input type="text" id="net" name="net" required></td>
+            </tr>
+            <tr>
+                <th><label for="networkNo">Network No.</label></th>
+                <td><input type="text" id="networkNo" name="networkNo" required></td>
+            </tr>
+            <tr>
+                <th><label for="ds">D/S</label></th>
+                <td><input type="text" id="ds" name="ds" required></td>
+            </tr>
+            <tr>
+                <th><label for="pcs">Pcs</label></th>
+                <td><input type="number" id="pcs" name="pcs" required></td>
+            </tr>
+            <tr>
+                <th><label for="weight">Weight (Kg)</label></th>
+                <td><input type="number" id="weight" name="weight" required></td>
+            </tr>
+            <tr>
+                <th><label for="amount">Amount ($)</label></th>
+                <td><input type="number" id="amount" name="amount" required oninput="calculateTotal()"></td>
+            </tr>
+            <tr>
+                <th><label for="covidCharge">COVID Charge ($)</label></th>
+                <td><input type="number" id="covidCharge" name="covidCharge" value="0" oninput="calculateTotal()"></td>
+            </tr>
+            <tr>
+                <th><label for="fuelCharge">Fuel Charge ($)</label></th>
+                <td><input type="number" id="fuelCharge" name="fuelCharge" value="0" oninput="calculateTotal()"></td>
+            </tr>
+            <tr>
+                <th><label for="taxRate">Tax Rate (%)</label></th>
+                <td><input type="number" id="taxRate" name="taxRate" value="0" oninput="calculateTotal()"></td>
+            </tr>
+            <tr>
+                <th><label for="taxAmount">Tax Amount ($)</label></th>
+                <td><input type="number" id="taxAmount" name="taxAmount" readonly></td>
+            </tr>
+            <tr>
+                <th><label for="grandTotal">Grand Total ($)</label></th>
+                <td><input type="number" id="grandTotal" name="grandTotal" readonly></td>
+            </tr>
+        </table>
+        <button type="button" onclick="generatePDF()">Generate PDF</button>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+        calculateTotal();
+        let today = new Date().toLocaleDateString();
+        document.getElementById('invoiceDate').innerText = "Date: " + today;
+    });
+
+    function calculateTotal() {
+        let amount = parseFloat(document.getElementById('amount').value) || 0;
+        let covidCharge = parseFloat(document.getElementById('covidCharge').value) || 0;
+        let fuelCharge = parseFloat(document.getElementById('fuelCharge').value) || 0;
+        let taxRate = parseFloat(document.getElementById('taxRate').value) || 0;
+
+        let subtotal = amount + covidCharge + fuelCharge;
+        let taxAmount = (subtotal * taxRate) / 100;
+        let grandTotal = subtotal + taxAmount;
+
+        document.getElementById('taxAmount').value = taxAmount.toFixed(2);
+        document.getElementById('grandTotal').value = grandTotal.toFixed(2);
+    }
+
+    function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    let date = new Date().toLocaleDateString();
+    let taxRate = document.getElementById('taxRate').value;
+    let taxAmount = document.getElementById('taxAmount').value;
+
+    // Invoice Header
+    doc.setFont("helvetica");
+    doc.text("Tax Invoice", 90, 20);
+    doc.text("HPL Logistics Pvt. Ltd.", 20, 30);
+    doc.text("Tel: 93175 23540 , 93566 00042", 20, 40);
+    
+    // Client Information
+    doc.text("MALHI ENTERPRISES", 20, 50);
+    doc.text("JALANDHAR CANTT HEAD POST OFFICE, JASVIR SINGH S/O AJIT", 20, 60);
+    doc.text("SINGH, OLD PHAGWARA ROAD, DEEP NAGAR, JALANDHAR", 20, 70);
+    doc.text("JALANDHAR PUNJAB-144005", 20, 80);
+    doc.text("GST No: 03DDOPM9654Q1ZJ", 20, 90);
+    doc.text("State: 03-PUNJAB", 20, 100);
+
+    // Invoice Details
+    doc.text("Invoice No.: HPLC/24-25/9478", 140, 50);
+    doc.text("Invoice Date: 29/08/2024", 140, 60);
+    doc.text("HSN/SAC: 996812", 140, 70);
+
+    // Table headers
+    doc.autoTable({
+        startY: 110,
+        head: [['AWB No.', 'Date', 'Destination', 'D/S', 'Weight', 'Consignee', 'Amount', 'Fuel', 'COVID Charge', 'Grand Total']],
+        body: [
+            [
+                document.getElementById('awbNo').value,
+                date,
+                document.getElementById('destination').value,
+                document.getElementById('ds').value,
+                document.getElementById('weight').value + " Kg",
+                document.getElementById('consignee').value,
+                "$" + document.getElementById('amount').value,
+                "$" + document.getElementById('fuelCharge').value,
+                "$" + document.getElementById('covidCharge').value,
+                "$" + document.getElementById('grandTotal').value
+            ]
+        ]
+    });
+
+    // Tax and Summary Information
+    doc.text("Non-Taxable: 0.00", 20, doc.autoTable.previous.finalY + 10);
+    doc.text("Taxable: $" + document.getElementById('taxAmount').value, 20, doc.autoTable.previous.finalY + 20);
+    doc.text("CGST @9%: $" + (parseFloat(taxAmount) / 2).toFixed(2), 20, doc.autoTable.previous.finalY + 30);
+    doc.text("SGST @9%: $" + (parseFloat(taxAmount) / 2).toFixed(2), 20, doc.autoTable.previous.finalY + 40);
+    doc.text("Rounded off: -0.16", 20, doc.autoTable.previous.finalY + 50);
+    doc.text("Bill Amount: $" + document.getElementById('grandTotal').value, 20, doc.autoTable.previous.finalY + 60);
+
+    // Footer Information
+    doc.text("Bank Name: HDFC BANK", 20, doc.autoTable.previous.finalY + 80);
+    doc.text("A/C No.: 99900000004042", 20, doc.autoTable.previous.finalY + 90);
+    doc.text("NEFT/RTGS: HDFC0000855", 20, doc.autoTable.previous.finalY + 100);
+    doc.text("Branch: FEROZEPUR ROAD LUDHIANA", 20, doc.autoTable.previous.finalY + 110);
+
+    // Save PDF
+    doc.save("invoice.pdf");
+}
+</script>
+
+</body>
+</html>
+
